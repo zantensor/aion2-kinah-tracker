@@ -54,6 +54,9 @@ try {
   $median = [Math]::Round($median, 4)
   if ($median -lt 30 -or $median -gt 250) { throw "ratio $median wan/yuan outside sane bounds (30-250)" }
   $price = [Math]::Round(10000 / $median, 2)   # yuan per 1 yi (= 10000 wan) kinah
+  # spread of the same top-10: best ratio = cheapest yuan price, worst = highest
+  $lowP  = [Math]::Round(10000 / ($top | Measure-Object -Maximum).Maximum, 2)
+  $highP = [Math]::Round(10000 / ($top | Measure-Object -Minimum).Minimum, 2)
 
   # --- load current data.json from GitHub ---
   $headers = @{ Authorization = "Bearer $token"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'aion2-kinah-scraper' }
@@ -75,8 +78,10 @@ try {
   if ($existing.Count) {
     $existing[0].price = $price
     $existing[0] | Add-Member -NotePropertyName ratio -NotePropertyValue $median -Force
+    $existing[0] | Add-Member -NotePropertyName low   -NotePropertyValue $lowP   -Force
+    $existing[0] | Add-Member -NotePropertyName high  -NotePropertyValue $highP  -Force
   } else {
-    $entries += [pscustomobject]@{ date = $today; price = $price; ratio = $median }
+    $entries += [pscustomobject]@{ date = $today; price = $price; ratio = $median; low = $lowP; high = $highP }
   }
   $data.entries = @($entries | Sort-Object date)
   # last-updated stamp, local time with explicit offset (PC runs GMT+8)

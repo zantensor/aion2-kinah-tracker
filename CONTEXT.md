@@ -50,7 +50,9 @@ from char codes) runs via Windows Task Scheduler task **"Aion2 Kinah Price Scrap
 2. Split HTML on `goods-list-item` — this excludes promoted-mall rows and platform buyback
    (the tier-mixing trap below) by construction
 3. Metric: **median ratio of top-10 regular listings**, stored as ¥ per 1億基納 (`10000/ratio`;
-   unit switched from 100萬金 on 2026-07-21 — 億 numbers compare naturally with lot totals)
+   unit switched from 100萬金 on 2026-07-21 — 億 numbers compare naturally with lot totals).
+   Each entry also stores `low`/`high` (¥ of the best/worst ratio within that same top-10) —
+   shown as the hero 掛單區間 line and the shaded band around the chart's median line.
 4. Sanity: ≥5 listings parsed, ratio within 30–250万/元, reject >25% off trailing-7 average
 5. Upsert today's entry in `data.json` via GitHub contents API (PAT in local `.env`,
    gitignored); repeat runs same day overwrite. Extra `ratio` field kept per entry.
