@@ -273,6 +273,11 @@ let token = IS_ARTIFACT ? '' : (localStorage.getItem(TOKEN_KEY) || '');
 const canEdit = () => IS_ARTIFACT || !!token;
 
 const $ = id => document.getElementById(id);
+/* local "YYYY-MM-DD HH:mm" stamp (owner edits happen in GMT+8) */
+const stamp = () => {
+  const d = new Date(), p = x => String(x).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+};
 const fmt = n => Number.isInteger(n)
   ? n.toLocaleString('en-US')
   : n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
@@ -472,7 +477,7 @@ function drawVendors(all){
     const p = parseFloat(nv);
     if(!(p>0)){ toast('請輸入有效價格'); return; }
     const t = state.vendors.find(x=>x.name===v.name);
-    t.price = p; t.updated = new Date().toISOString().slice(0,10);
+    t.price = p; t.updated = stamp();
     await save(); render(); toast('已更新商人價格');
   });
   host.querySelectorAll('.v-del').forEach(b=>b.onclick=async()=>{
@@ -596,7 +601,7 @@ $('addVendor').onclick = async()=>{
   const name = prompt('商人名稱（例如淘寶店名）'); if(!name || !name.trim()) return;
   const p = parseFloat(prompt('價格（¥ / '+state.unit+'）'));
   if(!(p>0)){ toast('請輸入有效價格'); return; }
-  (state.vendors = state.vendors||[]).push({ name:name.trim(), price:p, updated:new Date().toISOString().slice(0,10) });
+  (state.vendors = state.vendors||[]).push({ name:name.trim(), price:p, updated:stamp() });
   await save(); render(); toast('已新增商人');
 };
 
