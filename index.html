@@ -122,6 +122,13 @@
     border:1px solid var(--edge);border-radius:8px;padding:7px 13px;cursor:pointer;text-decoration:none}
   .ghost:hover{color:var(--ink);border-color:var(--ink-soft)}
 
+  /* read-only mode for visitors (no admin token) */
+  .ro .admin-only{display:none}
+  .ro .del{display:none}
+  .ro-note{display:none}
+  .ro .ro-note{display:block}
+  .artifact #adminBtn{display:none}
+
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
     background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:999px;
     opacity:0;pointer-events:none;transition:.22s}
@@ -146,7 +153,7 @@
       <div class="unit" id="unitLabel">per 100万金</div>
       <div class="delta flat" id="delta" style="margin-left:auto">no data</div>
     </div>
-    <p class="asof" id="asof">Log your first price below to start the history.</p>
+    <p class="asof" id="asof">No prices logged yet.</p>
   </section>
 
   <section class="panel">
@@ -167,7 +174,7 @@
     </div>
   </section>
 
-  <section class="panel">
+  <section class="panel admin-only">
     <h2 class="h2" style="margin-bottom:16px">Log a price</h2>
     <form id="form">
       <div>
@@ -190,11 +197,13 @@
   <section class="panel">
     <h2 class="h2" style="margin-bottom:16px">All entries</h2>
     <div id="tableHost"><div class="empty">Nothing logged yet.</div></div>
+    <p class="hint ro-note">View-only — prices are logged daily by the tracker owner.</p>
     <div class="tools">
       <button class="ghost" id="exp">Export CSV</button>
-      <button class="ghost" id="setUnit">Change unit label</button>
-      <button class="ghost" id="setServer">Rename server</button>
-      <button class="ghost" id="clear">Delete all data</button>
+      <button class="ghost admin-only" id="setUnit">Change unit label</button>
+      <button class="ghost admin-only" id="setServer">Rename server</button>
+      <button class="ghost admin-only" id="clear">Delete all data</button>
+      <button class="ghost" id="adminBtn">Admin</button>
     </div>
   </section>
 </div>
@@ -203,36 +212,94 @@
 
 <script>
 const KEY = 'aion2-gold-log';
-let state = { unit:'100万金', server:'My server', entries:[] };
+const TOKEN_KEY = 'aion2-gh-token';
+const REPO = 'zantensor/aion2-kinah-tracker';
+const DATA_FILE = 'data.json';
+let state = { unit:'100万金', server:'梅斯蘭泰達 天8', entries:[] };
 let days = 30;
+
+/* Two hosting modes (keep both — see CONTEXT.md):
+   - Claude artifact: window.storage exists → private per-user storage, always editable.
+   - Static host (GitHub Pages): data.json in the repo is the shared source of truth.
+     Everyone reads it; only a browser holding a GitHub token (admin mode) can write,
+     by committing data.json through the GitHub contents API. */
+const IS_ARTIFACT = !!window.storage;
+let token = IS_ARTIFACT ? '' : (localStorage.getItem(TOKEN_KEY) || '');
+const canEdit = () => IS_ARTIFACT || !!token;
 
 const $ = id => document.getElementById(id);
 const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
 const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); };
 
-/* Storage adapter: uses Claude's window.storage when present,
-   otherwise falls back to localStorage so the page works on any host. */
-const store = {
-  async get(){
-    if(window.storage){ const r = await window.storage.get(KEY); return r && r.value; }
-    return localStorage.getItem(KEY);
-  },
-  async set(v){
-    if(window.storage) return window.storage.set(KEY, v);
-    return localStorage.setItem(KEY, v);
-  }
-};
+function applyMode(){
+  document.body.classList.toggle('artifact', IS_ARTIFACT);
+  document.body.classList.toggle('ro', !canEdit());
+  $('adminBtn').textContent = token ? 'Admin · log out' : 'Admin';
+}
 
 async function load(){
-  try{
-    const raw = await store.get();
-    if(raw) state = Object.assign(state, JSON.parse(raw));
-  }catch(e){ /* first run: nothing saved yet */ }
-  render();
+  if(IS_ARTIFACT){
+    try{
+      const r = await window.storage.get(KEY);
+      if(r && r.value) state = Object.assign(state, JSON.parse(r.value));
+    }catch(e){ /* first run: nothing saved yet */ }
+  }else{
+    try{
+      const res = await fetch(DATA_FILE + '?t=' + Date.now(), {cache:'no-store'});
+      if(!res.ok) throw new Error();
+      state = Object.assign(state, await res.json());
+      localStorage.setItem(KEY, JSON.stringify(state)); // offline cache
+    }catch(e){
+      // data.json unreachable (offline, or file:// preview) — fall back to last cached copy
+      try{
+        const raw = localStorage.getItem(KEY);
+        if(raw) state = Object.assign(state, JSON.parse(raw));
+      }catch(_){ }
+    }
+  }
+  applyMode(); render();
 }
+
 async function save(){
-  try{ await store.set(JSON.stringify(state)); }
-  catch(e){ toast('Could not save — changes may be lost'); }
+  if(IS_ARTIFACT){
+    try{ await window.storage.set(KEY, JSON.stringify(state)); }
+    catch(e){ toast('Could not save — changes may be lost'); }
+    return;
+  }
+  localStorage.setItem(KEY, JSON.stringify(state));
+  if(token) syncToGitHub(); // async on purpose: UI toast first, sync result toast follows
+}
+
+async function ghContents(query, opts){
+  return fetch('https://api.github.com/repos/'+REPO+'/contents/'+DATA_FILE+(query||''), Object.assign({
+    headers:{
+      'Authorization':'Bearer '+token,
+      'Accept':'application/vnd.github+json',
+      'Content-Type':'application/json'
+    }
+  }, opts));
+}
+
+async function syncToGitHub(){
+  try{
+    let sha;
+    const g = await ghContents('?ref=main');
+    if(g.ok) sha = (await g.json()).sha;
+    else if(g.status !== 404) throw new Error('HTTP '+g.status);
+    const json = JSON.stringify(state, null, 2);
+    const body = {
+      message:'Update price data',
+      content: btoa(String.fromCharCode(...new TextEncoder().encode(json))),
+      branch:'main'
+    };
+    if(sha) body.sha = sha;
+    const put = await ghContents('', {method:'PUT', body: JSON.stringify(body)});
+    if(put.status===401 || put.status===403) throw new Error('token rejected');
+    if(!put.ok) throw new Error('HTTP '+put.status);
+    toast('Synced ✓ — live for everyone in ~1 min');
+  }catch(e){
+    toast('Sync failed ('+e.message+') — saved on this browser only');
+  }
 }
 
 function sorted(){ return [...state.entries].sort((a,b)=>a.date<b.date?-1:1); }
@@ -379,8 +446,22 @@ $('clear').onclick = async()=>{
   if(!confirm('Delete every logged price? This cannot be undone.')) return;
   state.entries=[]; await save(); render(); toast('All data deleted');
 };
+$('adminBtn').onclick = ()=>{
+  if(token){
+    if(!confirm('Log out of admin mode on this browser?')) return;
+    token=''; localStorage.removeItem(TOKEN_KEY);
+    applyMode(); render(); toast('Admin mode off');
+    return;
+  }
+  const v = prompt('Paste a GitHub fine-grained token with Contents read/write access to '+REPO+'.\nIt is stored only in this browser.');
+  if(v && v.trim()){
+    token=v.trim(); localStorage.setItem(TOKEN_KEY, token);
+    applyMode(); render(); toast('Admin mode on — saves now publish to GitHub');
+  }
+};
 
 $('date').value = new Date().toISOString().slice(0,10);
+applyMode(); // hide editing UI immediately; load() re-applies after data arrives
 load();
 </script>
 </body>

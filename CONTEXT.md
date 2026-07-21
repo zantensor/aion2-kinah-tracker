@@ -16,10 +16,17 @@ Value isn't today's price — dd373 already shows that. It's the **history and t
 - CSV export; editable server name + unit label; delete-all
 - Fonts via Google Fonts CDN (Bricolage Grotesque / IBM Plex Sans / IBM Plex Mono)
 
-**Storage adapter** (important): uses `window.storage` when present (Claude artifacts), falls back to `localStorage` otherwise (GitHub Pages / any static host). Keep both paths if editing — don't collapse to one.
+**Deployed** (2026-07-21): public repo `zantensor/aion2-kinah-tracker`, live at
+`https://zantensor.github.io/aion2-kinah-tracker/`.
 
-Storage key: `aion2-gold-log`
-Shape: `{ unit: string, server: string, entries: [{ date: "YYYY-MM-DD", price: number }] }`
+**Shared history architecture** (important — keep all paths if editing):
+- `data.json` in the repo is the shared source of truth on GitHub Pages. Everyone fetches it on load (cache-busted).
+- Visitors get a read-only view (`body.ro` hides all editing UI).
+- Admin mode: the owner pastes a fine-grained GitHub token (Contents read/write on this repo only) via the "Admin" button. Token lives in that browser's `localStorage` (`aion2-gh-token`). Saving an entry then commits `data.json` through the GitHub contents API — Pages republishes in ~1 min.
+- Claude artifact mode (`window.storage` present) still works as before: private per-user storage, always editable, no GitHub sync.
+- `localStorage` (`aion2-gold-log`) is kept as an offline/fallback cache on static hosts.
+
+Data shape: `{ unit: string, server: string, entries: [{ date: "YYYY-MM-DD", price: number }] }`
 
 ## Design tokens (keep consistent)
 ```
