@@ -64,7 +64,7 @@
   }
 
   /* hero */
-  .hero-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .hero-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
   .price{
     font-family:var(--mono);font-weight:600;
     font-size:clamp(56px,14vw,96px);line-height:.95;
@@ -78,8 +78,9 @@
     display:inline-flex;align-items:center;
     font-family:var(--mono);font-size:13px;color:var(--ink-soft);
     background:rgba(61,91,217,.07);border:1px solid var(--edge);
-    border-radius:999px;padding:5px 14px;margin-top:14px;
+    border-radius:999px;padding:5px 14px;margin-bottom:14px;
   }
+  .delta{margin-bottom:14px}
   .delta{
     font-family:var(--mono);font-size:14px;font-weight:600;padding:5px 10px;
     border-radius:999px;margin-bottom:10px;white-space:nowrap;
@@ -181,10 +182,8 @@
 
   <section class="panel">
     <div class="hero-top">
-      <div>
-        <div class="price" id="price"><span class="yuan">¥</span>—</div>
-        <div class="unit" id="unitLabel">每 1億基納</div>
-      </div>
+      <div class="price" id="price"><span class="yuan">¥</span>—</div>
+      <div class="unit" id="unitLabel">每 1億基納</div>
       <div class="delta flat" id="delta" style="margin-left:auto">尚無資料</div>
     </div>
     <p class="asof" id="spread" hidden></p>
