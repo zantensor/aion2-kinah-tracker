@@ -72,16 +72,26 @@ try {
     if ($dev -gt 0.25) { throw ("price {0} deviates {1:P0} from trailing avg {2:N4} - refusing to write" -f $price, $dev, $avg) }
   }
 
-  # --- upsert today's entry (repeat runs the same day overwrite it) ---
+  # --- upsert today's entry: price = average of all of today's samples (one
+  # scrape every 6 h -> up to 4/day), low/high = widest range observed today ---
   $today = Get-Date -Format 'yyyy-MM-dd'
   $existing = @($entries | Where-Object { $_.date -eq $today })
   if ($existing.Count) {
-    $existing[0].price = $price
-    $existing[0] | Add-Member -NotePropertyName ratio -NotePropertyValue $median -Force
-    $existing[0] | Add-Member -NotePropertyName low   -NotePropertyValue $lowP   -Force
-    $existing[0] | Add-Member -NotePropertyName high  -NotePropertyValue $highP  -Force
+    $e = $existing[0]
+    $samples = @()
+    if ($e.PSObject.Properties['samples']) { $samples = @($e.samples) }
+    elseif ($e.PSObject.Properties['price']) { $samples = @($e.price) } # pre-averaging entry
+    $samples += $price
+    $avg = [Math]::Round(($samples | Measure-Object -Average).Average, 2)
+    $lowAll  = if ($e.PSObject.Properties['low']  -and $e.low)  { [Math]::Min($e.low,  $lowP)  } else { $lowP }
+    $highAll = if ($e.PSObject.Properties['high'] -and $e.high) { [Math]::Max($e.high, $highP) } else { $highP }
+    $e.price = $avg
+    $e | Add-Member -NotePropertyName ratio   -NotePropertyValue ([Math]::Round(10000 / $avg, 4)) -Force
+    $e | Add-Member -NotePropertyName low     -NotePropertyValue $lowAll  -Force
+    $e | Add-Member -NotePropertyName high    -NotePropertyValue $highAll -Force
+    $e | Add-Member -NotePropertyName samples -NotePropertyValue $samples -Force
   } else {
-    $entries += [pscustomobject]@{ date = $today; price = $price; ratio = $median; low = $lowP; high = $highP }
+    $entries += [pscustomobject]@{ date = $today; price = $price; ratio = $median; low = $lowP; high = $highP; samples = @($price) }
   }
   $data.entries = @($entries | Sort-Object date)
   # last-updated stamp, local time with explicit offset (PC runs GMT+8)

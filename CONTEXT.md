@@ -55,7 +55,9 @@ from char codes) runs via Windows Task Scheduler task **"Aion2 Kinah Price Scrap
    shown as the hero 掛單區間 line and the shaded band around the chart's median line.
 4. Sanity: ≥5 listings parsed, ratio within 30–250万/元, reject >25% off trailing-7 average
 5. Upsert today's entry in `data.json` via GitHub contents API (PAT in local `.env`,
-   gitignored); repeat runs same day overwrite. Extra `ratio` field kept per entry.
+   gitignored). Same-day runs accumulate: `samples` holds each scrape's median price,
+   `price` = their average, `low`/`high` = widest range observed that day. `ratio`
+   is derived from the averaged price. The page ignores `samples`.
 6. Logs to `scraper.log` (gitignored); failures write `FAIL` lines and touch nothing.
 
 Original blockers, for the record: CORS blocks browser-side fetch (hence PC-side scraper);
