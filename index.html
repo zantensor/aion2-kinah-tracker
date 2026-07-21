@@ -64,14 +64,22 @@
   }
 
   /* hero */
-  .hero-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  .hero-top{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
   .price{
     font-family:var(--mono);font-weight:600;
-    font-size:clamp(48px,13vw,84px);line-height:.9;
-    letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+    font-size:clamp(56px,14vw,96px);line-height:.95;
+    letter-spacing:-.035em;font-variant-numeric:tabular-nums;
+    background:linear-gradient(160deg,var(--ink) 30%,var(--aether) 95%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 14px 30px rgba(61,91,217,.18));
   }
-  .price .yuan{font-size:.42em;color:var(--ink-soft);margin-right:.12em;vertical-align:.36em}
-  .unit{font-family:var(--mono);font-size:13px;color:var(--ink-soft);padding-bottom:10px}
+  .price .yuan{font-size:.4em;color:var(--ink-soft);margin-right:.1em;vertical-align:.4em}
+  .unit{
+    display:inline-flex;align-items:center;
+    font-family:var(--mono);font-size:13px;color:var(--ink-soft);
+    background:rgba(61,91,217,.07);border:1px solid var(--edge);
+    border-radius:999px;padding:5px 14px;margin-top:14px;
+  }
   .delta{
     font-family:var(--mono);font-size:14px;font-weight:600;padding:5px 10px;
     border-radius:999px;margin-bottom:10px;white-space:nowrap;
@@ -173,8 +181,10 @@
 
   <section class="panel">
     <div class="hero-top">
-      <div class="price" id="price"><span class="yuan">¥</span>—</div>
-      <div class="unit" id="unitLabel">每 1億基納</div>
+      <div>
+        <div class="price" id="price"><span class="yuan">¥</span>—</div>
+        <div class="unit" id="unitLabel">每 1億基納</div>
+      </div>
       <div class="delta flat" id="delta" style="margin-left:auto">尚無資料</div>
     </div>
     <p class="asof" id="spread" hidden></p>
@@ -354,6 +364,28 @@ function inRange(){
   return all.filter(e=>e.date>=cut);
 }
 
+/* Count-up hero price: rolls from 0 on first paint, then between values on
+   updates. Skipped for prefers-reduced-motion. */
+let shownPrice = null;
+function setPrice(target){
+  const el = $('price');
+  const html = v => '<span class="yuan">¥</span>' + v;
+  if(shownPrice === target) return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){
+    el.innerHTML = html(fmt(target)); shownPrice = target; return;
+  }
+  const from = shownPrice == null ? 0 : shownPrice;
+  const t0 = performance.now(), dur = 900;
+  const ease = x => 1 - Math.pow(1 - x, 3);
+  const mid = v => Number.isInteger(target) ? Math.round(v).toLocaleString('en-US') : v.toFixed(2);
+  shownPrice = target;
+  requestAnimationFrame(function step(now){
+    const k = Math.min(1, (now - t0) / dur);
+    el.innerHTML = html(k < 1 ? mid(from + (target - from) * ease(k)) : fmt(target));
+    if(k < 1) requestAnimationFrame(step);
+  });
+}
+
 function render(){
   const all = sorted();
   $('serverName').textContent = state.server;
@@ -361,7 +393,7 @@ function render(){
 
   if(all.length){
     const last = all[all.length-1];
-    $('price').innerHTML = '<span class="yuan">¥</span>' + fmt(last.price);
+    setPrice(last.price);
     const sp = $('spread');
     if(last.low != null && last.high != null){
       sp.hidden = false;
