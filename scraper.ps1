@@ -79,6 +79,8 @@ try {
     $entries += [pscustomobject]@{ date = $today; price = $price; ratio = $median }
   }
   $data.entries = @($entries | Sort-Object date)
+  # last-updated stamp, local time with explicit offset (PC runs GMT+8)
+  $data | Add-Member -NotePropertyName updated -NotePropertyValue ((Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz')) -Force
 
   # --- commit back via contents API ---
   $json = $data | ConvertTo-Json -Depth 5
