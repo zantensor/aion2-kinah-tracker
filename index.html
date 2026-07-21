@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aion 2 · Gold Price Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky:#E4E8F6;
+    --mist:#FAFBFF;
+    --edge:#C9D0E8;
+    --ink:#161A38;
+    --ink-soft:#5B628C;
+    --aether:#3D5BD9;
+    --amber:#B4761A;
+    --rose:#B03A57;
+    --jade:#22755F;
+    --r:14px;
+    --display:"Bricolage Grotesque",system-ui,sans-serif;
+    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(120% 70% at 50% -10%, #F3F5FF 0%, var(--sky) 55%, #D6DCF0 100%) fixed;
+    color:var(--ink);
+    font-family:var(--body);
+    -webkit-font-smoothing:antialiased;
+    padding:28px 18px 64px;
+  }
+  .wrap{max-width:820px;margin:0 auto}
+
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink-soft);margin:0 0 18px;
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  }
+  .eyebrow b{color:var(--aether);font-weight:600}
+
+  .panel{
+    background:var(--mist);
+    border:1px solid var(--edge);
+    border-radius:var(--r);
+    padding:24px;
+    margin-bottom:16px;
+    box-shadow:0 1px 0 #fff inset, 0 10px 30px -22px rgba(22,26,56,.5);
+  }
+
+  /* hero */
+  .hero-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  .price{
+    font-family:var(--mono);font-weight:600;
+    font-size:clamp(48px,13vw,84px);line-height:.9;
+    letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+  }
+  .price .yuan{font-size:.42em;color:var(--ink-soft);margin-right:.12em;vertical-align:.36em}
+  .unit{font-family:var(--mono);font-size:13px;color:var(--ink-soft);padding-bottom:10px}
+  .delta{
+    font-family:var(--mono);font-size:14px;font-weight:600;padding:5px 10px;
+    border-radius:999px;margin-bottom:10px;white-space:nowrap;
+  }
+  .up{color:var(--rose);background:rgba(176,58,87,.1)}
+  .down{color:var(--jade);background:rgba(34,117,95,.1)}
+  .flat{color:var(--ink-soft);background:rgba(91,98,140,.1)}
+  .asof{font-size:13px;color:var(--ink-soft);margin-top:14px}
+
+  /* chart */
+  .chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+  .h2{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:-.01em;margin:0}
+  .seg{display:flex;gap:2px;background:var(--sky);padding:3px;border-radius:999px}
+  .seg button{
+    font-family:var(--mono);font-size:11px;letter-spacing:.06em;border:0;cursor:pointer;
+    background:transparent;color:var(--ink-soft);padding:5px 11px;border-radius:999px;
+  }
+  .seg button[aria-pressed="true"]{background:var(--mist);color:var(--ink);box-shadow:0 1px 3px rgba(22,26,56,.14)}
+  svg.chart{width:100%;height:200px;display:block;overflow:visible}
+  .empty{
+    font-size:14px;color:var(--ink-soft);text-align:center;
+    padding:52px 20px;border:1px dashed var(--edge);border-radius:10px;
+  }
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--edge);
+    border:1px solid var(--edge);border-radius:10px;overflow:hidden;margin-top:18px}
+  .stat{background:var(--mist);padding:12px 14px}
+  .stat span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+  .stat b{font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* form */
+  form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+  label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+  input{
+    width:100%;font-family:var(--mono);font-size:15px;color:var(--ink);
+    background:#fff;border:1px solid var(--edge);border-radius:9px;padding:11px 12px;
+  }
+  input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--aether);outline-offset:2px}
+  .save{
+    font-family:var(--body);font-size:14px;font-weight:600;color:#fff;background:var(--aether);
+    border:0;border-radius:9px;padding:12px 22px;cursor:pointer;
+  }
+  .save:hover{background:#2E48BE}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin:14px 0 0;line-height:1.55}
+  .hint a{color:var(--aether)}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:14px}
+  th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);
+    text-align:left;font-weight:500;padding:0 8px 9px}
+  th:nth-child(n+2),td:nth-child(n+2){text-align:right}
+  td{padding:9px 8px;border-top:1px solid var(--edge);font-variant-numeric:tabular-nums}
+  tbody tr:hover{background:var(--sky)}
+  .del{border:0;background:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:5px}
+  .del:hover{color:var(--rose);background:rgba(176,58,87,.1)}
+  .tools{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .ghost{font-family:var(--body);font-size:12.5px;color:var(--ink-soft);background:transparent;
+    border:1px solid var(--edge);border-radius:8px;padding:7px 13px;cursor:pointer;text-decoration:none}
+  .ghost:hover{color:var(--ink);border-color:var(--ink-soft)}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:.22s}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media (max-width:620px){
+    form{grid-template-columns:1fr 1fr}
+    .save{grid-column:1/-1}
+    .stats{grid-template-columns:1fr 1fr}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Aion 2 <span>·</span> <b id="serverName">My server</b> <span>·</span> gold price log</p>
+
+  <section class="panel">
+    <div class="hero-top">
+      <div class="price" id="price"><span class="yuan">¥</span>—</div>
+      <div class="unit" id="unitLabel">per 100万金</div>
+      <div class="delta flat" id="delta" style="margin-left:auto">no data</div>
+    </div>
+    <p class="asof" id="asof">Log your first price below to start the history.</p>
+  </section>
+
+  <section class="panel">
+    <div class="chart-head">
+      <h2 class="h2">Price history</h2>
+      <div class="seg" id="range">
+        <button data-d="7" aria-pressed="false">7D</button>
+        <button data-d="30" aria-pressed="true">30D</button>
+        <button data-d="0" aria-pressed="false">ALL</button>
+      </div>
+    </div>
+    <div id="chartHost"><div class="empty">No entries yet.</div></div>
+    <div class="stats">
+      <div class="stat"><span>Average</span><b id="sAvg">—</b></div>
+      <div class="stat"><span>Low</span><b id="sLow">—</b></div>
+      <div class="stat"><span>High</span><b id="sHigh">—</b></div>
+      <div class="stat"><span>Entries</span><b id="sN">0</b></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="h2" style="margin-bottom:16px">Log a price</h2>
+    <form id="form">
+      <div>
+        <label for="date">Date</label>
+        <input type="date" id="date" required>
+      </div>
+      <div>
+        <label for="val">Price in ¥</label>
+        <input type="number" id="val" step="0.0001" min="0" placeholder="1.2500" required inputmode="decimal">
+      </div>
+      <button class="save" type="submit">Save</button>
+    </form>
+    <p class="hint">
+      Open your server's listing page, take the lowest realistic asking price, and type it here.
+      Saving the same date twice replaces the old value.
+      <br><a href="https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html" target="_blank" rel="noopener">Open the dd373 listing page →</a>
+    </p>
+  </section>
+
+  <section class="panel">
+    <h2 class="h2" style="margin-bottom:16px">All entries</h2>
+    <div id="tableHost"><div class="empty">Nothing logged yet.</div></div>
+    <div class="tools">
+      <button class="ghost" id="exp">Export CSV</button>
+      <button class="ghost" id="setUnit">Change unit label</button>
+      <button class="ghost" id="setServer">Rename server</button>
+      <button class="ghost" id="clear">Delete all data</button>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'aion2-gold-log';
+let state = { unit:'100万金', server:'My server', entries:[] };
+let days = 30;
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
+const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); };
+
+/* Storage adapter: uses Claude's window.storage when present,
+   otherwise falls back to localStorage so the page works on any host. */
+const store = {
+  async get(){
+    if(window.storage){ const r = await window.storage.get(KEY); return r && r.value; }
+    return localStorage.getItem(KEY);
+  },
+  async set(v){
+    if(window.storage) return window.storage.set(KEY, v);
+    return localStorage.setItem(KEY, v);
+  }
+};
+
+async function load(){
+  try{
+    const raw = await store.get();
+    if(raw) state = Object.assign(state, JSON.parse(raw));
+  }catch(e){ /* first run: nothing saved yet */ }
+  render();
+}
+async function save(){
+  try{ await store.set(JSON.stringify(state)); }
+  catch(e){ toast('Could not save — changes may be lost'); }
+}
+
+function sorted(){ return [...state.entries].sort((a,b)=>a.date<b.date?-1:1); }
+function inRange(){
+  const all = sorted();
+  if(!days) return all;
+  const cut = new Date(Date.now()-days*864e5).toISOString().slice(0,10);
+  return all.filter(e=>e.date>=cut);
+}
+
+function render(){
+  const all = sorted();
+  $('serverName').textContent = state.server;
+  $('unitLabel').textContent = 'per ' + state.unit;
+
+  if(all.length){
+    const last = all[all.length-1];
+    $('price').innerHTML = '<span class="yuan">¥</span>' + fmt(last.price);
+    const d = new Date(last.date+'T00:00:00');
+    $('asof').textContent = 'Recorded ' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const el = $('delta');
+    if(all.length>1){
+      const prev = all[all.length-2].price;
+      const pct = ((last.price-prev)/prev)*100;
+      el.className = 'delta ' + (pct>0.001?'up':pct<-0.001?'down':'flat');
+      el.textContent = (pct>0?'▲ +':pct<0?'▼ ':'– ') + pct.toFixed(2) + '% vs previous';
+    } else { el.className='delta flat'; el.textContent='first entry'; }
+  }
+
+  const win = inRange();
+  if(win.length){
+    const ps = win.map(e=>e.price);
+    $('sAvg').textContent = '¥'+fmt(ps.reduce((a,b)=>a+b,0)/ps.length);
+    $('sLow').textContent = '¥'+fmt(Math.min(...ps));
+    $('sHigh').textContent= '¥'+fmt(Math.max(...ps));
+  } else { $('sAvg').textContent=$('sLow').textContent=$('sHigh').textContent='—'; }
+  $('sN').textContent = all.length;
+
+  drawChart(win);
+  drawTable(all);
+}
+
+function drawChart(data){
+  const host = $('chartHost');
+  if(data.length < 2){
+    host.innerHTML = '<div class="empty">'+(data.length?'One entry so far — log another day to see the trend.':'No entries in this range.')+'</div>';
+    return;
+  }
+  const W=760, H=200, PT=18, PB=26, PR=54, PL=6;
+  const xs = data.map(e=>new Date(e.date+'T00:00:00').getTime());
+  const ys = data.map(e=>e.price);
+  const x0=Math.min(...xs), x1=Math.max(...xs);
+  let lo=Math.min(...ys), hi=Math.max(...ys);
+  if(hi===lo){ hi+=hi*0.02||1; lo-=lo*0.02||1; }
+  const pad=(hi-lo)*0.18; lo-=pad; hi+=pad;
+  const px = t => PL + ((t-x0)/(x1-x0||1))*(W-PL-PR);
+  const py = v => PT + (1-(v-lo)/(hi-lo))*(H-PT-PB);
+
+  const pts = data.map((e,i)=>[px(xs[i]), py(ys[i])]);
+  const line = pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const area = line+` L ${pts[pts.length-1][0].toFixed(1)} ${H-PB} L ${pts[0][0].toFixed(1)} ${H-PB} Z`;
+  const lastP = pts[pts.length-1];
+
+  const gy = [hi-pad, lo+pad].map(v=>
+    `<line x1="${PL}" y1="${py(v).toFixed(1)}" x2="${W-PR}" y2="${py(v).toFixed(1)}" stroke="#C9D0E8" stroke-dasharray="2 5"/>
+     <text x="${W-PR+9}" y="${(py(v)+4).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B628C">¥${fmt(v)}</text>`).join('');
+
+  const dots = pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#3D5BD9" opacity="${i===pts.length-1?0:.35}"/>`).join('');
+
+  const fd = t => new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gold price over time">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D5BD9" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#3D5BD9" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${gy}
+    <path d="${area}" fill="url(#g)"/>
+    <path d="${line}" fill="none" stroke="#3D5BD9" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    ${dots}
+    <circle cx="${lastP[0].toFixed(1)}" cy="${lastP[1].toFixed(1)}" r="8" fill="#3D5BD9" opacity=".16"/>
+    <circle cx="${lastP[0].toFixed(1)}" cy="${lastP[1].toFixed(1)}" r="4" fill="#3D5BD9" stroke="#FAFBFF" stroke-width="2"/>
+    <text x="${PL}" y="${H-6}" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B628C">${fd(x0)}</text>
+    <text x="${W-PR}" y="${H-6}" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B628C">${fd(x1)}</text>
+  </svg>`;
+}
+
+function drawTable(all){
+  const host = $('tableHost');
+  if(!all.length){ host.innerHTML='<div class="empty">Nothing logged yet.</div>'; return; }
+  const rows = [...all].reverse().map((e,i,arr)=>{
+    const prev = arr[i+1];
+    let ch='—', cls='';
+    if(prev){
+      const p=((e.price-prev.price)/prev.price)*100;
+      ch=(p>0?'+':'')+p.toFixed(2)+'%';
+      cls = p>0.001?'style="color:#B03A57"':p<-0.001?'style="color:#22755F"':'';
+    }
+    const d=new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'});
+    return `<tr><td>${d}</td><td>¥${fmt(e.price)}</td><td ${cls}>${ch}</td>
+      <td style="width:34px"><button class="del" data-d="${e.date}" aria-label="Delete ${d}">×</button></td></tr>`;
+  }).join('');
+  host.innerHTML = `<table><thead><tr><th>Date</th><th>Price</th><th>Change</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  host.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{
+    state.entries = state.entries.filter(e=>e.date!==b.dataset.d);
+    await save(); render(); toast('Entry deleted');
+  });
+}
+
+$('form').addEventListener('submit', async ev=>{
+  ev.preventDefault();
+  const date=$('date').value, price=parseFloat($('val').value);
+  if(!date || !(price>0)){ toast('Enter a date and a price above zero'); return; }
+  const existing = state.entries.find(e=>e.date===date);
+  if(existing) existing.price=price; else state.entries.push({date,price});
+  await save(); render();
+  $('val').value='';
+  toast(existing?'Price updated':'Price saved');
+});
+
+$('range').addEventListener('click', ev=>{
+  const b=ev.target.closest('button'); if(!b) return;
+  days=+b.dataset.d;
+  [...ev.currentTarget.children].forEach(c=>c.setAttribute('aria-pressed', c===b));
+  render();
+});
+
+$('exp').onclick = ()=>{
+  if(!state.entries.length){ toast('Nothing to export yet'); return; }
+  const csv='date,price_cny,unit\n'+sorted().map(e=>`${e.date},${e.price},${state.unit}`).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='aion2-gold-prices.csv'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('setUnit').onclick = async()=>{
+  const v=prompt('What quantity does the price cover?', state.unit);
+  if(v && v.trim()){ state.unit=v.trim(); await save(); render(); }
+};
+$('setServer').onclick = async()=>{
+  const v=prompt('Server name', state.server);
+  if(v && v.trim()){ state.server=v.trim(); await save(); render(); }
+};
+$('clear').onclick = async()=>{
+  if(!confirm('Delete every logged price? This cannot be undone.')) return;
+  state.entries=[]; await save(); render(); toast('All data deleted');
+};
+
+$('date').value = new Date().toISOString().slice(0,10);
+load();
+</script>
+</body>
+</html>

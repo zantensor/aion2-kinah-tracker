@@ -1,0 +1,60 @@
+# Aion 2 gold price tracker — handoff
+
+## Goal
+Track the daily gold (基纳/kinah) price for **永恒之塔2, 天族(台服) / 梅斯蘭泰達 天8** from dd373.com.
+Source page: `https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html`
+
+Value isn't today's price — dd373 already shows that. It's the **history and trend**, which dd373 never gives you.
+
+## Current state
+`index.html` — single file, no build step, no dependencies.
+
+- Manual daily price entry (date + ¥ price); re-saving a date overwrites it
+- SVG line chart, date-scaled x-axis, 7D / 30D / ALL range toggle
+- Stats: average, low, high, entry count
+- History table with % change vs previous entry, per-row delete
+- CSV export; editable server name + unit label; delete-all
+- Fonts via Google Fonts CDN (Bricolage Grotesque / IBM Plex Sans / IBM Plex Mono)
+
+**Storage adapter** (important): uses `window.storage` when present (Claude artifacts), falls back to `localStorage` otherwise (GitHub Pages / any static host). Keep both paths if editing — don't collapse to one.
+
+Storage key: `aion2-gold-log`
+Shape: `{ unit: string, server: string, entries: [{ date: "YYYY-MM-DD", price: number }] }`
+
+## Design tokens (keep consistent)
+```
+--sky #E4E8F6   --mist #FAFBFF   --edge #C9D0E8
+--ink #161A38   --ink-soft #5B628C
+--aether #3D5BD9 (accent/chart)  --amber #B4761A
+--rose #B03A57 (price up)        --jade #22755F (price down)
+```
+Price up = rose (bad for a buyer), down = jade. Mono + tabular-nums for all numeric display.
+
+## Why it's manual, not scraped
+Three independent blockers, in order of how hard they are to get around:
+
+1. **CORS** — a static page cannot fetch dd373's HTML from the browser. Hard stop for a Pages-only solution.
+2. **JS-rendered listings** — plain HTTP GET returns no prices. Needs a headless browser.
+3. **robots.txt disallows non-Chinese crawlers.** dd373 appears to whitelist domestic bots (Baiduspider, Bytespider, Sogou) and disallow others. Not a legal wall, but it means anti-bot measures are active and an IP block is a realistic outcome.
+
+## Data reliability warning — read this before writing any scraper
+Doubao (ByteDance AI, whose crawler dd373 permits) was asked the same question and produced confident output that was **internally contradictory and arithmetically wrong**:
+
+- Claimed "no 天8 kinah listings exist" in one answer, "121 listings" in the next
+- Stated 1元 ≈ 67.34万基纳, then "2001元 buys 1347万基纳" — that's 0.67万/元, off by 100×
+- Quoted a "1元 = 15.5万基纳" listing, almost certainly a misparse
+
+**Ground truth from search snippets (2026-07-21):** real 天8 kinah listings at ￥18.77 → 1元=71.9233万基纳, and ￥16.10 → 1元=71.4286万基纳. So roughly **71–72万 per yuan** on small auction lots — versus Doubao's claimed 85–100万. A 30–40% gap.
+
+Root cause: the page mixes 极速收货 (platform buyback), bulk retail lots, and small auction lots side by side, at very different ratios. Any scraper **must pin down which tier it's reading** or it will produce numbers that look plausible and are useless.
+
+## Next steps
+1. Deploy `index.html` to GitHub Pages (public repo, Settings → Pages → deploy from `main`, root).
+2. Log manually for ~1 week to build a baseline.
+3. *Only then* consider a GitHub Actions cron scraper committing `data.json` for the page to read.
+
+Caveats for step 3: Actions runs on datacenter IPs that get blocked far more aggressively than a home connection — expect it to work briefly then silently return nothing. The week of manual data from step 2 is what lets you detect that failure. Build in a sanity check that rejects any scraped value more than ~25% off the trailing 7-day average rather than writing it blindly.
+
+## Open decisions
+- Which price tier to actually track (buyback vs bulk retail vs small lot) — currently undecided, user logs whatever number matters to them
+- Unit label defaults to `100万金`; dd373 quotes per 万 or per 100万 depending on listing. Must be set consistently or the history is meaningless.
