@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aion 2 · Gold Price Log</title>
+<title>永恆之塔2 · 金幣價格追蹤</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --sky:#E4E8F6;
@@ -19,8 +19,8 @@
     --rose:#B03A57;
     --jade:#22755F;
     --r:14px;
-    --display:"Bricolage Grotesque",system-ui,sans-serif;
-    --body:"IBM Plex Sans",system-ui,sans-serif;
+    --display:"Bricolage Grotesque","Noto Sans TC",system-ui,sans-serif;
+    --body:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;
     --mono:"IBM Plex Mono",ui-monospace,monospace;
   }
   *{box-sizing:border-box}
@@ -127,7 +127,6 @@
   .ro .del{display:none}
   .ro-note{display:none}
   .ro .ro-note{display:block}
-  .artifact #adminBtn{display:none}
 
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
     background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:999px;
@@ -145,65 +144,62 @@
 <body>
 <div class="wrap">
 
-  <p class="eyebrow">Aion 2 <span>·</span> <b id="serverName">My server</b> <span>·</span> gold price log</p>
+  <p class="eyebrow">永恆之塔2 <span>·</span> <b id="serverName">My server</b> <span>·</span> 金幣價格</p>
 
   <section class="panel">
     <div class="hero-top">
       <div class="price" id="price"><span class="yuan">¥</span>—</div>
-      <div class="unit" id="unitLabel">per 100万金</div>
-      <div class="delta flat" id="delta" style="margin-left:auto">no data</div>
+      <div class="unit" id="unitLabel">每 100萬金</div>
+      <div class="delta flat" id="delta" style="margin-left:auto">尚無資料</div>
     </div>
-    <p class="asof" id="asof">No prices logged yet.</p>
+    <p class="asof" id="asof">尚無價格紀錄。</p>
   </section>
 
   <section class="panel">
     <div class="chart-head">
-      <h2 class="h2">Price history</h2>
+      <h2 class="h2">價格走勢</h2>
       <div class="seg" id="range">
-        <button data-d="7" aria-pressed="false">7D</button>
-        <button data-d="30" aria-pressed="true">30D</button>
-        <button data-d="0" aria-pressed="false">ALL</button>
+        <button data-d="7" aria-pressed="false">7天</button>
+        <button data-d="30" aria-pressed="true">30天</button>
+        <button data-d="0" aria-pressed="false">全部</button>
       </div>
     </div>
-    <div id="chartHost"><div class="empty">No entries yet.</div></div>
+    <div id="chartHost"><div class="empty">尚無紀錄。</div></div>
     <div class="stats">
-      <div class="stat"><span>Average</span><b id="sAvg">—</b></div>
-      <div class="stat"><span>Low</span><b id="sLow">—</b></div>
-      <div class="stat"><span>High</span><b id="sHigh">—</b></div>
-      <div class="stat"><span>Entries</span><b id="sN">0</b></div>
+      <div class="stat"><span>平均</span><b id="sAvg">—</b></div>
+      <div class="stat"><span>最低</span><b id="sLow">—</b></div>
+      <div class="stat"><span>最高</span><b id="sHigh">—</b></div>
+      <div class="stat"><span>筆數</span><b id="sN">0</b></div>
     </div>
   </section>
 
   <section class="panel admin-only">
-    <h2 class="h2" style="margin-bottom:16px">Log a price</h2>
+    <h2 class="h2" style="margin-bottom:16px">登記價格</h2>
     <form id="form">
       <div>
-        <label for="date">Date</label>
+        <label for="date">日期</label>
         <input type="date" id="date" required>
       </div>
       <div>
-        <label for="val">Price in ¥</label>
+        <label for="val">價格（¥）</label>
         <input type="number" id="val" step="0.0001" min="0" placeholder="1.2500" required inputmode="decimal">
       </div>
-      <button class="save" type="submit">Save</button>
+      <button class="save" type="submit">儲存</button>
     </form>
     <p class="hint">
-      Open your server's listing page, take the lowest realistic asking price, and type it here.
-      Saving the same date twice replaces the old value.
-      <br><a href="https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html" target="_blank" rel="noopener">Open the dd373 listing page →</a>
+      同一天重複儲存會覆蓋舊值。平常由排程擷取器自動更新，這裡僅作手動備援。
+      <br><a href="https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html" target="_blank" rel="noopener">開啟 dd373 商品列表 →</a>
     </p>
   </section>
 
   <section class="panel">
-    <h2 class="h2" style="margin-bottom:16px">All entries</h2>
-    <div id="tableHost"><div class="empty">Nothing logged yet.</div></div>
-    <p class="hint ro-note">View-only — prices are logged daily by the tracker owner.</p>
-    <div class="tools">
-      <button class="ghost" id="exp">Export CSV</button>
-      <button class="ghost admin-only" id="setUnit">Change unit label</button>
-      <button class="ghost admin-only" id="setServer">Rename server</button>
-      <button class="ghost admin-only" id="clear">Delete all data</button>
-      <button class="ghost" id="adminBtn">Admin</button>
+    <h2 class="h2" style="margin-bottom:16px">歷史紀錄</h2>
+    <div id="tableHost"><div class="empty">尚無紀錄。</div></div>
+    <p class="hint ro-note">價格每 6 小時自動擷取自 <a href="https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html" target="_blank" rel="noopener">dd373</a>（一般拍賣區前十筆最佳比例的中位數）。</p>
+    <div class="tools admin-only">
+      <button class="ghost" id="setUnit">修改單位</button>
+      <button class="ghost" id="setServer">修改伺服器名稱</button>
+      <button class="ghost" id="clear">清除全部資料</button>
     </div>
   </section>
 </div>
@@ -215,7 +211,7 @@ const KEY = 'aion2-gold-log';
 const TOKEN_KEY = 'aion2-gh-token';
 const REPO = 'zantensor/aion2-kinah-tracker';
 const DATA_FILE = 'data.json';
-let state = { unit:'100万金', server:'梅斯蘭泰達 天8', entries:[] };
+let state = { unit:'100萬金', server:'梅斯蘭泰達 天8', entries:[] };
 let days = 30;
 
 /* Two hosting modes (keep both — see CONTEXT.md):
@@ -234,8 +230,27 @@ const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('on');
 function applyMode(){
   document.body.classList.toggle('artifact', IS_ARTIFACT);
   document.body.classList.toggle('ro', !canEdit());
-  $('adminBtn').textContent = token ? 'Admin · log out' : 'Admin';
 }
+
+/* Hidden admin entry: open the page with #admin to paste a token (owner only).
+   #admin again while unlocked logs out. No visible UI for guild members. */
+function handleAdminHash(){
+  if(IS_ARTIFACT || location.hash !== '#admin') return;
+  if(token){
+    if(confirm('登出管理模式？')){
+      token=''; localStorage.removeItem(TOKEN_KEY);
+      applyMode(); render(); toast('已登出管理模式');
+    }
+  }else{
+    const v = prompt('貼上 GitHub fine-grained token（僅需 '+REPO+' 的 Contents 讀寫權限）。\n只會儲存在這個瀏覽器。');
+    if(v && v.trim()){
+      token=v.trim(); localStorage.setItem(TOKEN_KEY, token);
+      applyMode(); render(); toast('管理模式已開啟 — 儲存將同步到 GitHub');
+    }
+  }
+  history.replaceState(null,'',location.pathname+location.search);
+}
+window.addEventListener('hashchange', handleAdminHash);
 
 async function load(){
   if(IS_ARTIFACT){
@@ -263,7 +278,7 @@ async function load(){
 async function save(){
   if(IS_ARTIFACT){
     try{ await window.storage.set(KEY, JSON.stringify(state)); }
-    catch(e){ toast('Could not save — changes may be lost'); }
+    catch(e){ toast('儲存失敗 — 變更可能遺失'); }
     return;
   }
   localStorage.setItem(KEY, JSON.stringify(state));
@@ -294,11 +309,11 @@ async function syncToGitHub(){
     };
     if(sha) body.sha = sha;
     const put = await ghContents('', {method:'PUT', body: JSON.stringify(body)});
-    if(put.status===401 || put.status===403) throw new Error('token rejected');
+    if(put.status===401 || put.status===403) throw new Error('token 無效');
     if(!put.ok) throw new Error('HTTP '+put.status);
-    toast('Synced ✓ — live for everyone in ~1 min');
+    toast('已同步 ✓ — 約 1 分鐘後全員可見');
   }catch(e){
-    toast('Sync failed ('+e.message+') — saved on this browser only');
+    toast('同步失敗（'+e.message+'）— 僅存於此瀏覽器');
   }
 }
 
@@ -313,20 +328,20 @@ function inRange(){
 function render(){
   const all = sorted();
   $('serverName').textContent = state.server;
-  $('unitLabel').textContent = 'per ' + state.unit;
+  $('unitLabel').textContent = '每 ' + state.unit;
 
   if(all.length){
     const last = all[all.length-1];
     $('price').innerHTML = '<span class="yuan">¥</span>' + fmt(last.price);
     const d = new Date(last.date+'T00:00:00');
-    $('asof').textContent = 'Recorded ' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    $('asof').textContent = '紀錄於 ' + d.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
     const el = $('delta');
     if(all.length>1){
       const prev = all[all.length-2].price;
       const pct = ((last.price-prev)/prev)*100;
       el.className = 'delta ' + (pct>0.001?'up':pct<-0.001?'down':'flat');
-      el.textContent = (pct>0?'▲ +':pct<0?'▼ ':'– ') + pct.toFixed(2) + '% vs previous';
-    } else { el.className='delta flat'; el.textContent='first entry'; }
+      el.textContent = (pct>0?'▲ +':pct<0?'▼ ':'– ') + pct.toFixed(2) + '% 較前次';
+    } else { el.className='delta flat'; el.textContent='首筆紀錄'; }
   }
 
   const win = inRange();
@@ -345,7 +360,7 @@ function render(){
 function drawChart(data){
   const host = $('chartHost');
   if(data.length < 2){
-    host.innerHTML = '<div class="empty">'+(data.length?'One entry so far — log another day to see the trend.':'No entries in this range.')+'</div>';
+    host.innerHTML = '<div class="empty">'+(data.length?'目前只有一筆紀錄 — 累積幾天後即可看到走勢。':'此區間內尚無紀錄。')+'</div>';
     return;
   }
   const W=760, H=200, PT=18, PB=26, PR=54, PL=6;
@@ -369,9 +384,9 @@ function drawChart(data){
 
   const dots = pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#3D5BD9" opacity="${i===pts.length-1?0:.35}"/>`).join('');
 
-  const fd = t => new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const fd = t => new Date(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});
 
-  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gold price over time">
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="金幣價格走勢圖">
     <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#3D5BD9" stop-opacity=".22"/>
       <stop offset="100%" stop-color="#3D5BD9" stop-opacity="0"/>
@@ -389,7 +404,7 @@ function drawChart(data){
 
 function drawTable(all){
   const host = $('tableHost');
-  if(!all.length){ host.innerHTML='<div class="empty">Nothing logged yet.</div>'; return; }
+  if(!all.length){ host.innerHTML='<div class="empty">尚無紀錄。</div>'; return; }
   const rows = [...all].reverse().map((e,i,arr)=>{
     const prev = arr[i+1];
     let ch='—', cls='';
@@ -398,26 +413,26 @@ function drawTable(all){
       ch=(p>0?'+':'')+p.toFixed(2)+'%';
       cls = p>0.001?'style="color:#B03A57"':p<-0.001?'style="color:#22755F"':'';
     }
-    const d=new Date(e.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit'});
+    const d=new Date(e.date+'T00:00:00').toLocaleDateString('zh-TW',{year:'2-digit',month:'numeric',day:'numeric'});
     return `<tr><td>${d}</td><td>¥${fmt(e.price)}</td><td ${cls}>${ch}</td>
-      <td style="width:34px"><button class="del" data-d="${e.date}" aria-label="Delete ${d}">×</button></td></tr>`;
+      <td style="width:34px"><button class="del" data-d="${e.date}" aria-label="刪除 ${d}">×</button></td></tr>`;
   }).join('');
-  host.innerHTML = `<table><thead><tr><th>Date</th><th>Price</th><th>Change</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  host.innerHTML = `<table><thead><tr><th>日期</th><th>價格</th><th>漲跌</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
   host.querySelectorAll('.del').forEach(b=>b.onclick=async()=>{
     state.entries = state.entries.filter(e=>e.date!==b.dataset.d);
-    await save(); render(); toast('Entry deleted');
+    await save(); render(); toast('已刪除');
   });
 }
 
 $('form').addEventListener('submit', async ev=>{
   ev.preventDefault();
   const date=$('date').value, price=parseFloat($('val').value);
-  if(!date || !(price>0)){ toast('Enter a date and a price above zero'); return; }
+  if(!date || !(price>0)){ toast('請輸入日期與大於零的價格'); return; }
   const existing = state.entries.find(e=>e.date===date);
   if(existing) existing.price=price; else state.entries.push({date,price});
   await save(); render();
   $('val').value='';
-  toast(existing?'Price updated':'Price saved');
+  toast(existing?'已更新價格':'已儲存價格');
 });
 
 $('range').addEventListener('click', ev=>{
@@ -427,42 +442,22 @@ $('range').addEventListener('click', ev=>{
   render();
 });
 
-$('exp').onclick = ()=>{
-  if(!state.entries.length){ toast('Nothing to export yet'); return; }
-  const csv='date,price_cny,unit\n'+sorted().map(e=>`${e.date},${e.price},${state.unit}`).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
-  a.download='aion2-gold-prices.csv'; a.click(); URL.revokeObjectURL(a.href);
-};
 $('setUnit').onclick = async()=>{
-  const v=prompt('What quantity does the price cover?', state.unit);
+  const v=prompt('這個價格對應多少數量？', state.unit);
   if(v && v.trim()){ state.unit=v.trim(); await save(); render(); }
 };
 $('setServer').onclick = async()=>{
-  const v=prompt('Server name', state.server);
+  const v=prompt('伺服器名稱', state.server);
   if(v && v.trim()){ state.server=v.trim(); await save(); render(); }
 };
 $('clear').onclick = async()=>{
-  if(!confirm('Delete every logged price? This cannot be undone.')) return;
-  state.entries=[]; await save(); render(); toast('All data deleted');
-};
-$('adminBtn').onclick = ()=>{
-  if(token){
-    if(!confirm('Log out of admin mode on this browser?')) return;
-    token=''; localStorage.removeItem(TOKEN_KEY);
-    applyMode(); render(); toast('Admin mode off');
-    return;
-  }
-  const v = prompt('Paste a GitHub fine-grained token with Contents read/write access to '+REPO+'.\nIt is stored only in this browser.');
-  if(v && v.trim()){
-    token=v.trim(); localStorage.setItem(TOKEN_KEY, token);
-    applyMode(); render(); toast('Admin mode on — saves now publish to GitHub');
-  }
+  if(!confirm('確定刪除所有價格紀錄？此操作無法復原。')) return;
+  state.entries=[]; await save(); render(); toast('已清除全部資料');
 };
 
 $('date').value = new Date().toISOString().slice(0,10);
 applyMode(); // hide editing UI immediately; load() re-applies after data arrives
-load();
+load().then(handleAdminHash);
 </script>
 </body>
 </html>
