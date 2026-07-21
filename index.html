@@ -55,6 +55,7 @@
   .eyebrow b{color:var(--aether);font-weight:600}
 
   .panel{
+    position:relative;
     background:var(--mist);
     border:1px solid var(--edge);
     border-radius:var(--r);
@@ -62,6 +63,7 @@
     margin-bottom:16px;
     box-shadow:0 1px 0 #fff inset, 0 10px 30px -22px rgba(22,26,56,.5);
   }
+  .cur-seg{position:absolute;top:20px;right:20px;z-index:1}
 
   /* hero */
   .hero-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
@@ -186,6 +188,10 @@
   </header>
 
   <section class="panel">
+    <div class="seg cur-seg" id="curSeg">
+      <button data-c="CNY" aria-pressed="true">人民幣</button>
+      <button data-c="TWD" aria-pressed="false">台幣</button>
+    </div>
     <div class="hero-top">
       <div class="price" id="price"><span class="yuan">¥</span>—</div>
       <div class="unit" id="unitLabel">每 1億基納</div>
@@ -193,6 +199,7 @@
     </div>
     <p class="asof" id="spread" hidden></p>
     <p class="asof" id="asof">尚無價格紀錄。</p>
+    <p class="hint" id="fxNote" hidden></p>
   </section>
 
   <section class="panel">
@@ -278,6 +285,48 @@ const stamp = () => {
   const d = new Date(), p = x => String(x).padStart(2,'0');
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
 };
+
+/* Currency: data is stored in CNY; TWD is display-only conversion using a
+   daily FX rate (open.er-api.com, jsDelivr fallback), cached 12 h. */
+let currency = localStorage.getItem('aion2-cur') || 'CNY';
+let fxRate = null; // CNY -> TWD
+const curEff = () => (currency === 'TWD' && fxRate) ? 'TWD' : 'CNY';
+const conv = n => curEff() === 'TWD' ? n * fxRate : n;
+const sym = () => curEff() === 'TWD' ? 'NT$' : '¥';
+const money = n => {
+  const v = conv(n);
+  return sym() + (curEff() === 'TWD' ? Math.round(v).toLocaleString('en-US') : fmt(v));
+};
+async function loadFx(){
+  try{
+    const c = JSON.parse(localStorage.getItem('aion2-fx') || 'null');
+    if(c && Date.now() - c.t < 12*3600e3){ fxRate = c.r; }
+  }catch(e){}
+  if(!fxRate){
+    try{
+      const r = await fetch('https://open.er-api.com/v6/latest/CNY').then(r=>r.json());
+      if(r && r.rates && r.rates.TWD) fxRate = r.rates.TWD;
+    }catch(e){}
+  }
+  if(!fxRate){
+    try{
+      const r = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/cny.json').then(r=>r.json());
+      if(r && r.cny && r.cny.twd) fxRate = r.cny.twd;
+    }catch(e){}
+  }
+  if(fxRate){
+    localStorage.setItem('aion2-fx', JSON.stringify({t: Date.now(), r: fxRate}));
+    applyCur(); render();
+  }
+}
+function applyCur(){
+  [...$('curSeg').children].forEach(c=>c.setAttribute('aria-pressed', c.dataset.c === currency));
+  const note = $('fxNote');
+  if(curEff() === 'TWD'){
+    note.hidden = false;
+    note.textContent = '匯率 1 人民幣 ≈ ' + fxRate.toFixed(2) + ' 新台幣（每日自動更新）';
+  } else note.hidden = true;
+}
 const fmt = n => Number.isInteger(n)
   ? n.toLocaleString('en-US')
   : n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
@@ -383,23 +432,26 @@ function inRange(){
 }
 
 /* Count-up hero price: rolls from 0 on first paint, then between values on
-   updates. Skipped for prefers-reduced-motion. */
-let shownPrice = null;
-function setPrice(target){
+   updates and currency switches. Skipped for prefers-reduced-motion. */
+let shownVal = null, shownKey = null;
+function setPrice(raw){
   const el = $('price');
-  const html = v => '<span class="yuan">¥</span>' + v;
-  if(shownPrice === target) return;
+  const c = curEff(), target = conv(raw), key = c + ':' + raw;
+  const html = v => '<span class="yuan">' + sym() + '</span>' + v;
+  const done = () => c === 'TWD' ? Math.round(target).toLocaleString('en-US') : fmt(target);
+  if(shownKey === key) return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){
-    el.innerHTML = html(fmt(target)); shownPrice = target; return;
+    el.innerHTML = html(done()); shownKey = key; shownVal = target; return;
   }
-  const from = shownPrice == null ? 0 : shownPrice;
+  const from = shownVal == null ? 0 : shownVal;
   const t0 = performance.now(), dur = 900;
   const ease = x => 1 - Math.pow(1 - x, 3);
-  const mid = v => Number.isInteger(target) ? Math.round(v).toLocaleString('en-US') : v.toFixed(2);
-  shownPrice = target;
+  const mid = v => (c === 'TWD' || Number.isInteger(target))
+    ? Math.round(v).toLocaleString('en-US') : v.toFixed(2);
+  shownKey = key; shownVal = target;
   requestAnimationFrame(function step(now){
     const k = Math.min(1, (now - t0) / dur);
-    el.innerHTML = html(k < 1 ? mid(from + (target - from) * ease(k)) : fmt(target));
+    el.innerHTML = html(k < 1 ? mid(from + (target - from) * ease(k)) : done());
     if(k < 1) requestAnimationFrame(step);
   });
 }
@@ -415,7 +467,7 @@ function render(){
     const sp = $('spread');
     if(last.low != null && last.high != null){
       sp.hidden = false;
-      sp.innerHTML = '掛單區間 <span class="num">¥'+fmt(last.low)+'</span> – <span class="num">¥'+fmt(last.high)+'</span>（前十筆最佳比例）';
+      sp.innerHTML = '掛單區間 <span class="num">'+money(last.low)+'</span> – <span class="num">'+money(last.high)+'</span>（前十筆最佳比例）';
     } else sp.hidden = true;
     if(state.updated){
       const u = new Date(state.updated);
@@ -439,9 +491,10 @@ function render(){
   const win = inRange();
   if(win.length){
     const ps = win.map(e=>e.price);
-    $('sAvg').textContent = '¥'+fmt(ps.reduce((a,b)=>a+b,0)/ps.length);
-    $('sLow').textContent = '¥'+fmt(Math.min(...ps));
-    $('sHigh').textContent= '¥'+fmt(Math.max(...ps));
+    const avg = ps.reduce((a,b)=>a+b,0)/ps.length;
+    $('sAvg').textContent = money(Math.round(avg*100)/100);
+    $('sLow').textContent = money(Math.min(...ps));
+    $('sHigh').textContent= money(Math.max(...ps));
   } else { $('sAvg').textContent=$('sLow').textContent=$('sHigh').textContent='—'; }
   $('sN').textContent = all.length;
 
@@ -457,7 +510,7 @@ function drawVendors(all){
   if(!vs.length){ host.innerHTML='<div class="empty">尚無商人資料。</div>'; return; }
   let rows = '';
   if(dd != null)
-    rows += `<tr><td>DD373<span class="src-tag">自動</span></td><td>¥${fmt(dd)}</td><td>基準</td><td></td></tr>`;
+    rows += `<tr><td>DD373<span class="src-tag">自動</span></td><td>${money(dd)}</td><td>基準</td><td></td></tr>`;
   rows += vs.map((v,i)=>{
     let diff='—', cls='';
     if(dd != null){
@@ -466,7 +519,7 @@ function drawVendors(all){
       cls = p>0.01?'style="color:#B03A57"':p<-0.01?'style="color:#22755F"':'';
     }
     const d = v.updated ? `<span class="v-date">${v.updated.slice(5).replace('-','/')}</span>` : '';
-    return `<tr><td>${v.name}${d}</td><td>¥${fmt(v.price)}</td><td ${cls}>${diff}</td>
+    return `<tr><td>${v.name}${d}</td><td>${money(v.price)}</td><td ${cls}>${diff}</td>
       <td style="width:64px;white-space:nowrap"><button class="del v-edit" data-i="${i}" aria-label="修改 ${v.name}">✎</button><button class="del v-del" data-i="${i}" aria-label="刪除 ${v.name}">×</button></td></tr>`;
   }).join('');
   host.innerHTML = `<table><thead><tr><th>來源</th><th>價格</th><th>較 DD373</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -521,7 +574,7 @@ function drawChart(data){
 
   const gy = [hi-pad, lo+pad].map(v=>
     `<line x1="${PL}" y1="${py(v).toFixed(1)}" x2="${W-PR}" y2="${py(v).toFixed(1)}" stroke="#C9D0E8" stroke-dasharray="2 5"/>
-     <text x="${W-PR+9}" y="${(py(v)+4).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B628C">¥${fmt(v)}</text>`).join('');
+     <text x="${W-PR+9}" y="${(py(v)+4).toFixed(1)}" font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B628C">${money(v)}</text>`).join('');
 
   const dots = pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#3D5BD9" opacity="${i===pts.length-1?0:.35}"/>`).join('');
 
@@ -556,7 +609,7 @@ function drawTable(all){
       cls = p>0.001?'style="color:#B03A57"':p<-0.001?'style="color:#22755F"':'';
     }
     const d=new Date(e.date+'T00:00:00').toLocaleDateString('zh-TW',{year:'2-digit',month:'numeric',day:'numeric'});
-    return `<tr><td>${d}</td><td>¥${fmt(e.price)}</td><td ${cls}>${ch}</td>
+    return `<tr><td>${d}</td><td>${money(e.price)}</td><td ${cls}>${ch}</td>
       <td style="width:34px"><button class="del" data-d="${e.date}" aria-label="刪除 ${d}">×</button></td></tr>`;
   }).join('');
   host.innerHTML = `<table><thead><tr><th>日期</th><th>價格</th><th>漲跌</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -575,6 +628,14 @@ $('form').addEventListener('submit', async ev=>{
   await save(); render();
   $('val').value='';
   toast(existing?'已更新價格':'已儲存價格');
+});
+
+$('curSeg').addEventListener('click', ev=>{
+  const b = ev.target.closest('button'); if(!b) return;
+  if(b.dataset.c === 'TWD' && !fxRate){ toast('匯率尚未載入，請稍後再試'); return; }
+  currency = b.dataset.c;
+  localStorage.setItem('aion2-cur', currency);
+  applyCur(); render();
 });
 
 $('range').addEventListener('click', ev=>{
@@ -607,7 +668,9 @@ $('addVendor').onclick = async()=>{
 
 $('date').value = new Date().toISOString().slice(0,10);
 applyMode(); // hide editing UI immediately; load() re-applies after data arrives
+applyCur();
 load().then(handleAdminHash);
+loadFx();
 </script>
 </body>
 </html>
