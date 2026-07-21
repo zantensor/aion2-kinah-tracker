@@ -159,6 +159,11 @@
   .ro-note{display:none}
   .ro .ro-note{display:block}
 
+  .src-tag,.v-date{
+    font-family:var(--mono);font-size:10px;color:var(--ink-soft);
+    background:var(--sky);padding:2px 8px;border-radius:999px;margin-left:8px;
+  }
+
   .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
     background:var(--ink);color:#fff;font-size:13.5px;padding:11px 20px;border-radius:999px;
     opacity:0;pointer-events:none;transition:.22s}
@@ -228,6 +233,15 @@
   </section>
 
   <section class="panel">
+    <h2 class="h2" style="margin-bottom:16px">商人比價</h2>
+    <div id="vendorHost"><div class="empty">尚無商人資料。</div></div>
+    <p class="hint ro-note">淘寶商人價格為手動更新，僅供參考；DD373 為自動追蹤基準。</p>
+    <div class="tools admin-only">
+      <button class="ghost" id="addVendor">新增商人</button>
+    </div>
+  </section>
+
+  <section class="panel">
     <h2 class="h2" style="margin-bottom:16px">歷史紀錄</h2>
     <div id="tableHost"><div class="empty">尚無紀錄。</div></div>
     <p class="hint ro-note">價格每 6 小時自動擷取自 <a href="https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html" target="_blank" rel="noopener">dd373</a> — 每日價格為當天多次擷取的平均值（取一般拍賣區前十筆最佳比例的中位數），陰影帶為當日掛單區間。</p>
@@ -246,7 +260,7 @@ const KEY = 'aion2-gold-log';
 const TOKEN_KEY = 'aion2-gh-token';
 const REPO = 'zantensor/aion2-kinah-tracker';
 const DATA_FILE = 'data.json';
-let state = { unit:'1億基納', server:'梅斯蘭泰達 天8', entries:[] };
+let state = { unit:'1億基納', server:'梅斯蘭泰達 天8', entries:[], vendors:[] };
 let days = 30;
 
 /* Two hosting modes (keep both — see CONTEXT.md):
@@ -427,7 +441,46 @@ function render(){
   $('sN').textContent = all.length;
 
   drawChart(win);
+  drawVendors(all);
   drawTable(all);
+}
+
+function drawVendors(all){
+  const host = $('vendorHost');
+  const dd = all.length ? all[all.length-1].price : null;
+  const vs = [...(state.vendors||[])].sort((a,b)=>a.price-b.price);
+  if(!vs.length){ host.innerHTML='<div class="empty">尚無商人資料。</div>'; return; }
+  let rows = '';
+  if(dd != null)
+    rows += `<tr><td>DD373<span class="src-tag">自動</span></td><td>¥${fmt(dd)}</td><td>基準</td><td></td></tr>`;
+  rows += vs.map((v,i)=>{
+    let diff='—', cls='';
+    if(dd != null){
+      const p = ((v.price-dd)/dd)*100;
+      diff = (p>0?'+':'')+p.toFixed(1)+'%';
+      cls = p>0.01?'style="color:#B03A57"':p<-0.01?'style="color:#22755F"':'';
+    }
+    const d = v.updated ? `<span class="v-date">${v.updated.slice(5).replace('-','/')}</span>` : '';
+    return `<tr><td>${v.name}${d}</td><td>¥${fmt(v.price)}</td><td ${cls}>${diff}</td>
+      <td style="width:64px;white-space:nowrap"><button class="del v-edit" data-i="${i}" aria-label="修改 ${v.name}">✎</button><button class="del v-del" data-i="${i}" aria-label="刪除 ${v.name}">×</button></td></tr>`;
+  }).join('');
+  host.innerHTML = `<table><thead><tr><th>來源</th><th>價格</th><th>較 DD373</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  host.querySelectorAll('.v-edit').forEach(b=>b.onclick=async()=>{
+    const v = vs[+b.dataset.i];
+    const nv = prompt('「'+v.name+'」的新價格（¥ / '+state.unit+'）', v.price);
+    if(nv===null) return;
+    const p = parseFloat(nv);
+    if(!(p>0)){ toast('請輸入有效價格'); return; }
+    const t = state.vendors.find(x=>x.name===v.name);
+    t.price = p; t.updated = new Date().toISOString().slice(0,10);
+    await save(); render(); toast('已更新商人價格');
+  });
+  host.querySelectorAll('.v-del').forEach(b=>b.onclick=async()=>{
+    const v = vs[+b.dataset.i];
+    if(!confirm('刪除商人「'+v.name+'」？')) return;
+    state.vendors = state.vendors.filter(x=>x.name!==v.name);
+    await save(); render(); toast('已刪除商人');
+  });
 }
 
 function drawChart(data){
@@ -537,6 +590,14 @@ $('setServer').onclick = async()=>{
 $('clear').onclick = async()=>{
   if(!confirm('確定刪除所有價格紀錄？此操作無法復原。')) return;
   state.entries=[]; await save(); render(); toast('已清除全部資料');
+};
+
+$('addVendor').onclick = async()=>{
+  const name = prompt('商人名稱（例如淘寶店名）'); if(!name || !name.trim()) return;
+  const p = parseFloat(prompt('價格（¥ / '+state.unit+'）'));
+  if(!(p>0)){ toast('請輸入有效價格'); return; }
+  (state.vendors = state.vendors||[]).push({ name:name.trim(), price:p, updated:new Date().toISOString().slice(0,10) });
+  await save(); render(); toast('已新增商人');
 };
 
 $('date').value = new Date().toISOString().slice(0,10);

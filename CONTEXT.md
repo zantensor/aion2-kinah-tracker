@@ -26,7 +26,10 @@ Value isn't today's price — dd373 already shows that. It's the **history and t
 - Claude artifact mode (`window.storage` present) still works as before: private per-user storage, always editable, no GitHub sync.
 - `localStorage` (`aion2-gold-log`) is kept as an offline/fallback cache on static hosts.
 
-Data shape: `{ unit: string, server: string, entries: [{ date: "YYYY-MM-DD", price: number }] }`
+Data shape: `{ unit, server, updated, entries: [{ date, price, ratio, low, high, samples }],
+vendors: [{ name, price, updated: "YYYY-MM-DD" }] }`
+`vendors` = Taobao sellers, manually maintained via admin mode (商人比價 panel: add/edit/
+delete). Page shows each vendor vs the latest DD373 price as the baseline.
 
 ## Design tokens (keep consistent)
 ```
