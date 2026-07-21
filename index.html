@@ -330,6 +330,11 @@ function applyCur(){
 const fmt = n => Number.isInteger(n)
   ? n.toLocaleString('en-US')
   : n.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:4});
+
+/* numeric dates are always day-first: DD/MM/YY and DD/MM */
+const pad2 = x => String(x).padStart(2,'0');
+const dmy = d => pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2);
+const dm  = d => pad2(d.getDate())+'/'+pad2(d.getMonth()+1);
 const toast = m => { const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); };
 
 function applyMode(){
@@ -518,7 +523,12 @@ function drawVendors(all){
       diff = (p>0?'+':'')+p.toFixed(1)+'%';
       cls = p>0.01?'style="color:#B03A57"':p<-0.01?'style="color:#22755F"':'';
     }
-    const d = v.updated ? `<span class="v-date">${v.updated.slice(5).replace('-','/')}</span>` : '';
+    let d = '';
+    if(v.updated){
+      const [ds, ts] = v.updated.split(' ');
+      const [, m, dd] = ds.split('-');
+      d = `<span class="v-date">${dd}/${m}${ts ? ' '+ts : ''}</span>`;
+    }
     return `<tr><td>${v.name}${d}</td><td>${money(v.price)}</td><td ${cls}>${diff}</td>
       <td style="width:64px;white-space:nowrap"><button class="del v-edit" data-i="${i}" aria-label="修改 ${v.name}">✎</button><button class="del v-del" data-i="${i}" aria-label="刪除 ${v.name}">×</button></td></tr>`;
   }).join('');
@@ -578,7 +588,7 @@ function drawChart(data){
 
   const dots = pts.map((p,i)=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="#3D5BD9" opacity="${i===pts.length-1?0:.35}"/>`).join('');
 
-  const fd = t => new Date(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});
+  const fd = t => dm(new Date(t));
 
   host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="基納價格走勢圖">
     <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
@@ -608,7 +618,7 @@ function drawTable(all){
       ch=(p>0?'+':'')+p.toFixed(2)+'%';
       cls = p>0.001?'style="color:#B03A57"':p<-0.001?'style="color:#22755F"':'';
     }
-    const d=new Date(e.date+'T00:00:00').toLocaleDateString('zh-TW',{year:'2-digit',month:'numeric',day:'numeric'});
+    const d=dmy(new Date(e.date+'T00:00:00'));
     return `<tr><td>${d}</td><td>${money(e.price)}</td><td ${cls}>${ch}</td>
       <td style="width:34px"><button class="del" data-d="${e.date}" aria-label="刪除 ${d}">×</button></td></tr>`;
   }).join('');

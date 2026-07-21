@@ -1,90 +1,131 @@
-# Aion 2 gold price tracker — handoff
+# 卡拉米俱樂部 — Aion 2 kinah price tracker
 
-## Goal
-Track the daily gold (基纳/kinah) price for **永恒之塔2, 天族(台服) / 梅斯蘭泰達 天8** from dd373.com.
-Source page: `https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html`
+## What this is
+Automated daily price tracker for kinah (基納) on **永恒之塔2, 天族(台服) / 梅斯蘭泰達 天8**,
+scraped from dd373.com every 6 hours, published for the guild (卡拉米俱樂部) on GitHub Pages.
+Value isn't today's price — dd373 shows that. It's the **history and trend**, which dd373
+never gives you, plus a comparison against Taobao vendors.
 
-Value isn't today's price — dd373 already shows that. It's the **history and trend**, which dd373 never gives you.
+- **Live site:** https://zantensor.github.io/aion2-kinah-tracker/
+- **Repo (public):** https://github.com/zantensor/aion2-kinah-tracker
+- **Source page:** https://www.dd373.com/s-r0f5te-4t9v2k-v0s03h-0-0-0-pccpee-0-0-0-0-0-1-0-3-1.html
+- **Timezone:** everything is GMT+8 (Singapore/Taiwan; user + guild + scraper PC all GMT+8)
 
-## Current state
-`index.html` — single file, no build step, no dependencies.
+## Architecture (as of 2026-07-21, all working end-to-end)
+```
+Windows Task Scheduler ("Aion2 Kinah Price Scraper", every 6 h: 00/06/12/18, catch-up on wake)
+  └─ scraper.ps1 (this folder, pure PowerShell 5.1, zero deps)
+       ├─ GET dd373 best-ratio page (plain HTTP + gzip decompress — NO headless browser needed)
+       ├─ parse regular listings, compute metric + spread, sanity-check
+       └─ upsert today's entry in data.json via GitHub contents API (PAT from .env)
+            └─ GitHub Pages republishes (~1 min) → index.html fetches data.json on load
+```
+The user's PC must be on for scrapes; missed runs fire on next boot (StartWhenAvailable).
+Days with no runs = gaps in the chart, harmless.
 
-- Manual daily price entry (date + ¥ price); re-saving a date overwrites it
-- SVG line chart, date-scaled x-axis, 7D / 30D / ALL range toggle
-- Stats: average, low, high, entry count
-- History table with % change vs previous entry, per-row delete
-- CSV export; editable server name + unit label; delete-all
-- Fonts via Google Fonts CDN (Bricolage Grotesque / IBM Plex Sans / IBM Plex Mono)
+## Files
+- `index.html` — the whole site, single file, no build step
+- `data.json` — shared source of truth (see Data shape)
+- `scraper.ps1` — scraper; ASCII-only source (PS 5.1 misreads BOM-less UTF-8; the Chinese
+  regex is built from `[char]` codes)
+- `.env` — `GITHUB_PAT=...` fine-grained token, Contents read/write on this repo ONLY.
+  **gitignored, never commit.** Same token is pasted into the owner's browser for admin mode.
+- `.gitignore` — `.env`, `scraper.log`
+- `scraper.log` — one line per run: `OK price=… ratio=… listings=…` or `FAIL reason`
 
-**Deployed** (2026-07-21): public repo `zantensor/aion2-kinah-tracker`, live at
-`https://zantensor.github.io/aion2-kinah-tracker/`.
+## Scraper details
+1. GET the **best-ratio-sorted** listing page (URL suffix `...-1-0-5-1.html`)
+2. Split HTML on `goods-list-item` — promoted 热卖商城 rows and 极速收货 buyback live outside
+   those blocks, so the tier-mixing trap (see warning below) is excluded by construction
+3. **Metric: median ratio (万基納/元) of the top-10 regular listings**, stored as
+   ¥ per 1億基納 = `10000/ratio`. Spread: `low`/`high` = best/worst of that same top-10.
+4. Sanity: ≥5 listings parsed; ratio within 30–250万/元; reject >25% off trailing-7 average.
+   On any failure: log FAIL, write nothing.
+5. Same-day runs accumulate: `samples` collects each run's median, `price` = their average,
+   `low`/`high` = widest range observed that day, `ratio` derived from averaged price.
+   A new day starts a fresh entry.
+6. Stamps top-level `updated` (ISO, `+08:00` offset).
 
-**Shared history architecture** (important — keep all paths if editing):
-- `data.json` in the repo is the shared source of truth on GitHub Pages. Everyone fetches it on load (cache-busted).
-- Visitors get a read-only view (`body.ro` hides all editing UI).
-- Admin mode: the owner pastes a fine-grained GitHub token (Contents read/write on this repo only) via the "Admin" button. Token lives in that browser's `localStorage` (`aion2-gh-token`). Saving an entry then commits `data.json` through the GitHub contents API — Pages republishes in ~1 min.
-- Claude artifact mode (`window.storage` present) still works as before: private per-user storage, always editable, no GitHub sync.
-- `localStorage` (`aion2-gold-log`) is kept as an offline/fallback cache on static hosts.
+Historical note: an earlier assessment claimed listings were JS-rendered and needed a headless
+browser — wrong. The test had merely failed to decompress dd373's forced-gzip response.
+CORS still blocks browser-side fetching (hence the PC-side scraper), and robots.txt only
+whitelists domestic crawlers — 4 requests/day from a residential IP is indistinguishable from
+a person checking the page, but keep the cadence gentle.
 
-Data shape: `{ unit, server, updated, entries: [{ date, price, ratio, low, high, samples }],
-vendors: [{ name, price, updated: "YYYY-MM-DD" }] }`
-`vendors` = Taobao sellers, manually maintained via admin mode (商人比價 panel: add/edit/
-delete). Page shows each vendor vs the latest DD373 price as the baseline.
+## Data shape (`data.json`)
+```
+{
+  unit: "1億基納",            // display unit; price = ¥ per this quantity
+  server: "梅斯蘭泰達 天8",
+  updated: "2026-07-21T18:31:08+08:00",   // last write, shown with live/stale dot
+  entries: [ { date, price, ratio, low, high, samples: [..] } ],  // one per day
+  vendors: [ { name, price, updated: "YYYY-MM-DD HH:mm" } ]       // Taobao sellers, manual
+}
+```
+Seeded entry: 2026-07-20 @ ¥109 was provided by the user (not scraped); its low/high equal
+price, so the chart band is zero-width there.
 
-## Design tokens (keep consistent)
+## Page features (`index.html`)
+All UI in **繁體中文** (`lang="zh-Hant"`). Currency of record is CNY.
+**Numeric dates are always day-first: DD/MM/YY (table), DD/MM (chart, vendor chips) — user
+preference, never MM/DD.** Long Chinese dates (2026年7月21日) stay as-is.
+
+- **Masthead**: 卡拉米俱樂部 in gradient (ink→aether), subtitle 永恆之塔2 · server · 基納價格
+- **Hero**: gradient price with glow + count-up animation (rolls 0→price on load, old→new on
+  change/currency switch; disabled for prefers-reduced-motion); unit chip 每 1億基納;
+  掛單區間 low–high line; 最後更新 timestamp rendered in Asia/Taipei with a pulsing green dot
+  that turns amber + 更新暫停中 when data is >8 h old (missed scrape signal)
+- **Currency toggle** (hero top-right): 人民幣 / 台幣. TWD is display-only conversion of every
+  number (hero, spread, chart labels, stats, tables); rate from open.er-api.com (fallback:
+  jsDelivr fawazahmed0 currency-api), cached 12 h in localStorage; per-visitor choice
+  remembered (`aion2-cur`). TWD rounds to whole dollars. FX note line shows the live rate.
+- **Chart**: SVG line of daily median with shaded low–high band (only drawn when every entry
+  in range has low/high), 7天/30天/全部 toggle, y-labels in active currency
+- **Stats**: 平均/最低/最高/筆數 across the selected range (across days — intraday spread is
+  the band/掛單區間, a deliberate distinction)
+- **商人比價**: DD373 (自動, baseline) vs manually-tracked Taobao vendors, sorted cheapest
+  first, ±% vs baseline (rose = premium, jade = cheaper), per-vendor updated chip
+  (MM/DD HH:mm). Percentages recompute automatically as DD373 moves.
+- **歷史紀錄**: per-day table with ±% vs previous day
+- **Modes**:
+  - Visitor (default): read-only; `body.ro` hides every editing control
+  - **Admin**: open `…/#admin`, paste the GitHub PAT once per browser (stored in
+    localStorage `aion2-gh-token`; `#admin` again = logout). Unlocks: 登記價格 manual form,
+    row deletes, vendor add/edit/delete, unit/server rename, clear-all. Every save commits
+    data.json via the contents API and refreshes `updated`.
+  - Claude artifact mode (`window.storage` present): private per-user storage, always
+    editable, no GitHub sync. Keep all three paths if editing.
+- localStorage `aion2-gold-log` doubles as offline/fallback cache on static hosts.
+
+## Fonts & design
+- Latin/digits: Bricolage Grotesque (display) / IBM Plex Sans (body) / IBM Plex Mono (all
+  numerals, tabular-nums)
+- CJK: **Noto Sans TC webfont** (explicit user choice after trying native-stack JhengHei and
+  LXGW WenKai) → fallbacks PingFang TC/SC, Hiragino, Source Han Sans, JhengHei
+- Numbers display without decimals when whole (¥105), with decimals when not (¥101.99)
+
+Design tokens (keep consistent):
 ```
 --sky #E4E8F6   --mist #FAFBFF   --edge #C9D0E8
 --ink #161A38   --ink-soft #5B628C
---aether #3D5BD9 (accent/chart)  --amber #B4761A
---rose #B03A57 (price up)        --jade #22755F (price down)
+--aether #3D5BD9 (accent/chart)  --amber #B4761A (stale)
+--rose #B03A57 (price up / vendor premium)   --jade #22755F (price down / cheaper)
 ```
-Price up = rose (bad for a buyer), down = jade. Mono + tabular-nums for all numeric display.
+Price up = rose (bad for a buyer), down = jade.
 
-## Scraper (added 2026-07-21)
-**The "JS-rendered listings" blocker was wrong** — listings ARE server-rendered; the earlier
-test simply didn't decompress the forced-gzip response. A plain GET with a browser UA +
-`Accept-Encoding` handling returns all 20 first-page listings. No headless browser needed.
+## Data reliability warning (kept for the record)
+Doubao (ByteDance AI) produced confidently wrong numbers for this exact question: contradictory
+listing counts, arithmetic off by 100×, and a "1元=15.5万" figure that is actually a promoted
+premium-mall row — not representative. Root cause: the dd373 page mixes 极速收货 (platform
+buyback ~102万/元), premium mall lots (67万 and worse), and regular auction lots (~92–96万/元
+as of 2026-07-21) side by side. The scraper reads ONLY regular listings; keep it that way.
 
-`scraper.ps1` (pure PowerShell 5.1, no deps, ASCII-only source — Chinese regex chars built
-from char codes) runs via Windows Task Scheduler task **"Aion2 Kinah Price Scraper"** every
-6 h (00/06/12/18) on the user's PC (home IP; datacenter IPs get blocked):
-
-1. GET the best-ratio-sorted listing page (`...-1-0-5-1.html`)
-2. Split HTML on `goods-list-item` — this excludes promoted-mall rows and platform buyback
-   (the tier-mixing trap below) by construction
-3. Metric: **median ratio of top-10 regular listings**, stored as ¥ per 1億基納 (`10000/ratio`;
-   unit switched from 100萬金 on 2026-07-21 — 億 numbers compare naturally with lot totals).
-   Each entry also stores `low`/`high` (¥ of the best/worst ratio within that same top-10) —
-   shown as the hero 掛單區間 line and the shaded band around the chart's median line.
-4. Sanity: ≥5 listings parsed, ratio within 30–250万/元, reject >25% off trailing-7 average
-5. Upsert today's entry in `data.json` via GitHub contents API (PAT in local `.env`,
-   gitignored). Same-day runs accumulate: `samples` holds each scrape's median price,
-   `price` = their average, `low`/`high` = widest range observed that day. `ratio`
-   is derived from the averaged price. The page ignores `samples`.
-6. Logs to `scraper.log` (gitignored); failures write `FAIL` lines and touch nothing.
-
-Original blockers, for the record: CORS blocks browser-side fetch (hence PC-side scraper);
-robots.txt whitelists only domestic crawlers — 4 requests/day from a residential IP is
-indistinguishable from a person checking the page, but keep the cadence gentle.
-
-## Data reliability warning — read this before writing any scraper
-Doubao (ByteDance AI, whose crawler dd373 permits) was asked the same question and produced confident output that was **internally contradictory and arithmetically wrong**:
-
-- Claimed "no 天8 kinah listings exist" in one answer, "121 listings" in the next
-- Stated 1元 ≈ 67.34万基纳, then "2001元 buys 1347万基纳" — that's 0.67万/元, off by 100×
-- Quoted a "1元 = 15.5万基纳" listing, almost certainly a misparse
-
-**Ground truth from search snippets (2026-07-21):** real 天8 kinah listings at ￥18.77 → 1元=71.9233万基纳, and ￥16.10 → 1元=71.4286万基纳. So roughly **71–72万 per yuan** on small auction lots — versus Doubao's claimed 85–100万. A 30–40% gap.
-
-Root cause: the page mixes 极速收货 (platform buyback), bulk retail lots, and small auction lots side by side, at very different ratios. Any scraper **must pin down which tier it's reading** or it will produce numbers that look plausible and are useless.
-
-## Next steps
-1. Deploy `index.html` to GitHub Pages (public repo, Settings → Pages → deploy from `main`, root).
-2. Log manually for ~1 week to build a baseline.
-3. *Only then* consider a GitHub Actions cron scraper committing `data.json` for the page to read.
-
-Caveats for step 3: Actions runs on datacenter IPs that get blocked far more aggressively than a home connection — expect it to work briefly then silently return nothing. The week of manual data from step 2 is what lets you detect that failure. Build in a sanity check that rejects any scraped value more than ~25% off the trailing 7-day average rather than writing it blindly.
-
-## Open decisions
-- Which price tier to actually track (buyback vs bulk retail vs small lot) — currently undecided, user logs whatever number matters to them
-- Unit label defaults to `100万金`; dd373 quotes per 万 or per 100万 depending on listing. Must be set consistently or the history is meaningless.
+## Operational notes
+- Scheduled task: `Get-ScheduledTaskInfo -TaskName 'Aion2 Kinah Price Scraper'`
+- Manual scrape: `powershell -NoProfile -ExecutionPolicy Bypass -File scraper.ps1`
+- If dd373 changes markup or blocks the IP → FAIL lines in scraper.log; page dot goes amber
+  after 8 h; manual admin entry is the fallback
+- If the PAT expires: make a new fine-grained token (Contents RW, this repo only), update
+  `.env` AND re-paste via `#admin`
+- Local repo may lag behind origin (scraper commits via API) — `git pull --rebase` before
+  local edits
