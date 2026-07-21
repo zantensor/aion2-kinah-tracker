@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>永恆之塔2 · 金幣價格追蹤</title>
+<title>永恆之塔2 · 基納價格追蹤</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -144,12 +144,12 @@
 <body>
 <div class="wrap">
 
-  <p class="eyebrow">永恆之塔2 <span>·</span> <b id="serverName">My server</b> <span>·</span> 金幣價格</p>
+  <p class="eyebrow">永恆之塔2 <span>·</span> <b id="serverName">My server</b> <span>·</span> 基納價格</p>
 
   <section class="panel">
     <div class="hero-top">
       <div class="price" id="price"><span class="yuan">¥</span>—</div>
-      <div class="unit" id="unitLabel">每 1億金</div>
+      <div class="unit" id="unitLabel">每 1億基納</div>
       <div class="delta flat" id="delta" style="margin-left:auto">尚無資料</div>
     </div>
     <p class="asof" id="asof">尚無價格紀錄。</p>
@@ -211,7 +211,7 @@ const KEY = 'aion2-gold-log';
 const TOKEN_KEY = 'aion2-gh-token';
 const REPO = 'zantensor/aion2-kinah-tracker';
 const DATA_FILE = 'data.json';
-let state = { unit:'1億金', server:'梅斯蘭泰達 天8', entries:[] };
+let state = { unit:'1億基納', server:'梅斯蘭泰達 天8', entries:[] };
 let days = 30;
 
 /* Two hosting modes (keep both — see CONTEXT.md):
@@ -386,7 +386,7 @@ function drawChart(data){
 
   const fd = t => new Date(t).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'});
 
-  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="金幣價格走勢圖">
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="基納價格走勢圖">
     <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#3D5BD9" stop-opacity=".22"/>
       <stop offset="100%" stop-color="#3D5BD9" stop-opacity="0"/>
