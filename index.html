@@ -6,7 +6,7 @@
 <title>永恆之塔2 · 基納價格追蹤</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --sky:#E4E8F6;
@@ -19,9 +19,12 @@
     --rose:#B03A57;
     --jade:#22755F;
     --r:14px;
-    --display:"Bricolage Grotesque","Noto Sans TC",system-ui,sans-serif;
-    --body:"IBM Plex Sans","Noto Sans TC",system-ui,sans-serif;
-    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    /* CJK stack: PingFang on Apple devices (the iOS look), best natives elsewhere */
+    --zh:"PingFang TC","PingFang SC","Hiragino Sans CNS","Source Han Sans TC",
+         "Microsoft JhengHei UI","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    --display:"Bricolage Grotesque",var(--zh),system-ui,sans-serif;
+    --body:"IBM Plex Sans",var(--zh),system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,var(--zh),monospace;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
