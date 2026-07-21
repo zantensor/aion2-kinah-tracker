@@ -37,12 +37,27 @@ Data shape: `{ unit: string, server: string, entries: [{ date: "YYYY-MM-DD", pri
 ```
 Price up = rose (bad for a buyer), down = jade. Mono + tabular-nums for all numeric display.
 
-## Why it's manual, not scraped
-Three independent blockers, in order of how hard they are to get around:
+## Scraper (added 2026-07-21)
+**The "JS-rendered listings" blocker was wrong** — listings ARE server-rendered; the earlier
+test simply didn't decompress the forced-gzip response. A plain GET with a browser UA +
+`Accept-Encoding` handling returns all 20 first-page listings. No headless browser needed.
 
-1. **CORS** — a static page cannot fetch dd373's HTML from the browser. Hard stop for a Pages-only solution.
-2. **JS-rendered listings** — plain HTTP GET returns no prices. Needs a headless browser.
-3. **robots.txt disallows non-Chinese crawlers.** dd373 appears to whitelist domestic bots (Baiduspider, Bytespider, Sogou) and disallow others. Not a legal wall, but it means anti-bot measures are active and an IP block is a realistic outcome.
+`scraper.ps1` (pure PowerShell 5.1, no deps, ASCII-only source — Chinese regex chars built
+from char codes) runs via Windows Task Scheduler task **"Aion2 Kinah Price Scraper"** every
+6 h (00/06/12/18) on the user's PC (home IP; datacenter IPs get blocked):
+
+1. GET the best-ratio-sorted listing page (`...-1-0-5-1.html`)
+2. Split HTML on `goods-list-item` — this excludes promoted-mall rows and platform buyback
+   (the tier-mixing trap below) by construction
+3. Metric: **median ratio of top-10 regular listings**, stored as ¥ per 100万金 (`100/ratio`)
+4. Sanity: ≥5 listings parsed, ratio within 30–250万/元, reject >25% off trailing-7 average
+5. Upsert today's entry in `data.json` via GitHub contents API (PAT in local `.env`,
+   gitignored); repeat runs same day overwrite. Extra `ratio` field kept per entry.
+6. Logs to `scraper.log` (gitignored); failures write `FAIL` lines and touch nothing.
+
+Original blockers, for the record: CORS blocks browser-side fetch (hence PC-side scraper);
+robots.txt whitelists only domestic crawlers — 4 requests/day from a residential IP is
+indistinguishable from a person checking the page, but keep the cadence gentle.
 
 ## Data reliability warning — read this before writing any scraper
 Doubao (ByteDance AI, whose crawler dd373 permits) was asked the same question and produced confident output that was **internally contradictory and arithmetically wrong**:
