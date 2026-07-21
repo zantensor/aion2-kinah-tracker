@@ -149,7 +149,7 @@
   <section class="panel">
     <div class="hero-top">
       <div class="price" id="price"><span class="yuan">¥</span>—</div>
-      <div class="unit" id="unitLabel">每 100萬金</div>
+      <div class="unit" id="unitLabel">每 1億金</div>
       <div class="delta flat" id="delta" style="margin-left:auto">尚無資料</div>
     </div>
     <p class="asof" id="asof">尚無價格紀錄。</p>
@@ -182,7 +182,7 @@
       </div>
       <div>
         <label for="val">價格（¥）</label>
-        <input type="number" id="val" step="0.0001" min="0" placeholder="1.2500" required inputmode="decimal">
+        <input type="number" id="val" step="0.01" min="0" placeholder="105.00" required inputmode="decimal">
       </div>
       <button class="save" type="submit">儲存</button>
     </form>
@@ -211,7 +211,7 @@ const KEY = 'aion2-gold-log';
 const TOKEN_KEY = 'aion2-gh-token';
 const REPO = 'zantensor/aion2-kinah-tracker';
 const DATA_FILE = 'data.json';
-let state = { unit:'100萬金', server:'梅斯蘭泰達 天8', entries:[] };
+let state = { unit:'1億金', server:'梅斯蘭泰達 天8', entries:[] };
 let days = 30;
 
 /* Two hosting modes (keep both — see CONTEXT.md):

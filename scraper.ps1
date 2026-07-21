@@ -2,7 +2,7 @@
 # Runs every 6 h via Windows Task Scheduler. See CONTEXT.md for architecture.
 #
 # Metric: median ratio (wan kinah per yuan) of the top-10 regular listings on the
-# best-ratio sorted page, stored as yuan per 100 wan kinah (price = 100 / ratio).
+# best-ratio sorted page, stored as yuan per 1 yi kinah (price = 10000 / ratio).
 # Promoted mall rows and platform buyback are outside goods-list-item blocks, so
 # splitting on that class excludes them by construction.
 #
@@ -53,7 +53,7 @@ try {
   if ($top.Count % 2 -eq 0) { $median = ($top[$mid - 1] + $top[$mid]) / 2 } else { $median = $top[$mid] }
   $median = [Math]::Round($median, 4)
   if ($median -lt 30 -or $median -gt 250) { throw "ratio $median wan/yuan outside sane bounds (30-250)" }
-  $price = [Math]::Round(100 / $median, 4)   # yuan per 100 wan kinah
+  $price = [Math]::Round(10000 / $median, 2)   # yuan per 1 yi (= 10000 wan) kinah
 
   # --- load current data.json from GitHub ---
   $headers = @{ Authorization = "Bearer $token"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'aion2-kinah-scraper' }
