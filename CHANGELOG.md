@@ -37,7 +37,7 @@
   掛單區間 spread line, 最後更新 timestamp with pulsing green dot (amber + 更新暫停中 if >8 h stale)
 - Chart: shaded low–high band around median line
 - **商人比價** panel: Taobao vendors vs DD373 baseline, manual admin add/edit/delete with
-  auto date+time stamps — seeded: 森林游戲業務 ¥125, 小二哥網友 ¥120 (both 21/07 18:50)
+  auto date+time stamps — seeded: 森林游戲業務 ¥125, 小二哥網游 ¥120 (both 21/07 18:50)
 - **人民幣/台幣 toggle**: live FX (open.er-api.com + jsDelivr fallback, 12 h cache),
   per-visitor persistence, TWD rounds to whole dollars
 - Whole numbers drop decimals (¥105 not ¥105.00); decimals kept when meaningful (¥101.99)
